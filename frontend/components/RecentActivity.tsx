@@ -88,23 +88,23 @@ export function RecentActivity() {
   const getColor = (type: string) => {
     switch (type) {
       case 'api_call':
-        return 'bg-blue-100 text-blue-600';
+        return 'border-[#0d6efd]';
       case 'top_up':
-        return 'bg-green-100 text-green-600';
+        return 'border-[#198754]';
       case 'agent_deploy':
-        return 'bg-purple-100 text-purple-600';
+        return 'border-[#ffc107]';
       default:
-        return 'bg-gray-100 text-gray-600';
+        return 'border-[#e9ecef]';
     }
   };
 
   if (loading) {
     return (
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+      <div className="retro-card rounded-lg p-4 sm:p-6">
+        <h3 className="text-lg sm:text-xl font-bold text-[#212529] mb-4 sm:mb-6">Recent Activity</h3>
         <div className="animate-pulse space-y-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="h-16 bg-gray-200 rounded"></div>
+            <div key={i} className="h-16 sm:h-20 retro-card rounded-lg"></div>
           ))}
         </div>
       </div>
@@ -112,34 +112,34 @@ export function RecentActivity() {
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-900">Recent Activity</h3>
-        <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+    <div className="retro-card rounded-lg p-4 sm:p-6 animate-fade-in">
+      <div className="flex items-center justify-between mb-4 sm:mb-6">
+        <h3 className="text-lg sm:text-xl font-bold text-[#212529]">Recent Activity</h3>
+        <button className="text-xs sm:text-sm text-[#0d6efd] hover:text-[#0b5ed7] font-semibold underline">
           View All
         </button>
       </div>
       {activities.length === 0 ? (
-        <div className="text-center py-8">
-          <p className="text-gray-500">No recent activity</p>
+        <div className="text-center py-8 sm:py-12">
+          <p className="text-[#6c757d] text-sm sm:text-base">No recent activity</p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2 sm:space-y-3">
           {activities.map((activity) => (
-            <div key={activity.id} className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getColor(activity.type)}`}>
+            <div key={activity.id} className="flex items-center space-x-3 p-3 sm:p-4 retro-card rounded-lg hover:shadow-sm transition-all duration-200">
+              <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center retro-card border ${getColor(activity.type)} flex-shrink-0`}>
                 {getIcon(activity.type)}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{activity.description}</p>
-                <p className="text-xs text-gray-500">{formatTime(activity.timestamp)}</p>
+                <p className="text-xs sm:text-sm font-semibold text-[#212529] truncate">{activity.description}</p>
+                <p className="text-xs text-[#6c757d] mt-0.5">{formatTime(activity.timestamp)}</p>
               </div>
               {activity.amount && (
-                <div className="text-right">
-                  <p className={`text-sm font-semibold ${activity.type === 'top_up' ? 'text-green-600' : 'text-red-600'}`}>
+                <div className="text-right flex-shrink-0">
+                  <p className={`text-xs sm:text-sm font-semibold ${activity.type === 'top_up' ? 'text-[#198754]' : 'text-red-600'}`}>
                     {activity.type === 'top_up' ? '+' : '-'}${activity.amount.toFixed(4)}
                   </p>
-                  <p className="text-xs text-gray-500">USDC</p>
+                  <p className="text-xs text-[#6c757d]">USDC</p>
                 </div>
               )}
             </div>

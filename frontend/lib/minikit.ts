@@ -112,9 +112,11 @@ export function isMiniKitAvailable(): boolean {
  * Verify with World ID using MiniKit
  * This follows the official pattern from World App documentation
  */
+import { VerificationLevel } from '@worldcoin/minikit-js';
+
 export async function verifyWithWorldID(
   action: string,
-  verificationLevel: 'Orb' | 'Device' = 'Orb',
+  verificationLevel: VerificationLevel = VerificationLevel.Orb,
   signal?: string
 ): Promise<any> {
   // Import MiniKit dynamically to avoid SSR issues

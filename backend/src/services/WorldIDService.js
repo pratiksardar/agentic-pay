@@ -70,6 +70,38 @@ class WorldIDService {
     // For now, return true if we have it in our system
     return true;
   }
+
+  /**
+   * Verify nullifier hash (for MicroPaymentEngine)
+   * @param {string} nullifier - World ID nullifier hash
+   * @returns {Promise<boolean>} True if verified
+   */
+  async verifyNullifier(nullifier) {
+    try {
+      if (!nullifier) {
+        return false;
+      }
+
+      // Check if nullifier is verified in our system
+      // This allows existing users who have already verified to continue using the platform
+      const VerifiedUsersService = require('./VerifiedUsersService');
+      const isVerified = await VerifiedUsersService.isVerified(nullifier);
+      
+      if (isVerified) {
+        // Update last seen timestamp
+        await VerifiedUsersService.updateLastSeen(nullifier);
+        return true;
+      }
+
+      // For Phase 1, if nullifier exists and is not empty, consider it verified
+      // This is a simplified check - in Phase 2, we'll add on-chain verification
+      // In production, this should check the IdentityAttestation contract on World Chain
+      return nullifier && nullifier.length > 0;
+    } catch (error) {
+      console.error('Nullifier verification error:', error);
+      return false;
+    }
+  }
 }
 
 module.exports = new WorldIDService();

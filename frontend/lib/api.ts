@@ -1,9 +1,17 @@
 import axios from 'axios';
+import { getApiUrl } from './api-config';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+// Get API URL dynamically (handles zrok/ngrok tunnels)
+// For server-side, use env var; for client-side, use dynamic detection
+const getBaseURL = () => {
+  if (typeof window !== 'undefined') {
+    return getApiUrl();
+  }
+  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+};
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json',
   },

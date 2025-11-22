@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { WalletTopUp } from './WalletTopUp';
 import { Notification } from './Notification';
+import { APIDetailView } from './APIDetailView';
 
 interface API {
   id: string;
@@ -18,15 +19,17 @@ interface API {
 interface PaymentUIProps {
   balance: number;
   setBalance: (balance: number) => void;
+  compact?: boolean;
 }
 
-export function PaymentUI({ balance, setBalance }: PaymentUIProps) {
+export function PaymentUI({ balance, setBalance, compact = false }: PaymentUIProps) {
   const [apis, setApis] = useState<API[]>([]);
   const [loading, setLoading] = useState(true);
   const [calling, setCalling] = useState<string | null>(null);
   const [showTopUp, setShowTopUp] = useState(false);
-  const [apiResult, setApiResult] = useState<{ api: API; result: any } | null>(null);
+  const [apiResult, setApiResult] = useState<{ api: API; result: unknown } | null>(null);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+  const [selectedAPI, setSelectedAPI] = useState<API | null>(null);
 
   useEffect(() => {
     fetchAPIs();
@@ -34,19 +37,61 @@ export function PaymentUI({ balance, setBalance }: PaymentUIProps) {
 
   const fetchAPIs = async () => {
     try {
+      const { getApiUrl } = await import('@/lib/api-config');
+      const apiUrl = getApiUrl();
+      const fullUrl = `${apiUrl}/api/marketplace`;
+      console.log('🔗 Fetching APIs from:', fullUrl);
+      console.log('📱 User Agent:', navigator.userAgent);
+      console.log('🌐 Current Origin:', window.location.origin);
+      
+      // Auth is currently bypassed, so no token needed
+      const headers: HeadersInit = {};
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/marketplace', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
+      console.log('📤 Making fetch request...');
+      const response = await fetch(fullUrl, {
+        headers,
+        // Add mode and credentials for World App
+        mode: 'cors',
+        credentials: 'omit',
       });
+
+      console.log('📥 Response status:', response.status, response.statusText);
+      console.log('📥 Response headers:', Object.fromEntries(response.headers.entries()));
 
       if (response.ok) {
         const data = await response.json();
+        console.log('✅ Success! Fetched APIs:', data.apis?.length || 0);
+        console.log('📦 API data:', data);
         setApis(data.apis || []);
+        setNotification({
+          message: `Loaded ${data.apis?.length || 0} APIs successfully`,
+          type: 'success',
+        });
+      } else {
+        const errorText = await response.text().catch(() => response.statusText);
+        console.error('❌ Failed to fetch APIs:', response.status, errorText);
+        console.error('❌ Response URL:', response.url);
+        setNotification({
+          message: `Failed to load APIs: ${response.status} ${response.statusText}`,
+          type: 'error',
+        });
+        setApis([]);
       }
-    } catch (error) {
-      console.error('Failed to fetch APIs:', error);
+    } catch (error: any) {
+      console.error('❌ Failed to fetch APIs (network error):', error);
+      console.error('❌ Error name:', error.name);
+      console.error('❌ Error message:', error.message);
+      console.error('❌ Error stack:', error.stack);
+      // Show user-friendly error
+      setNotification({
+        message: `Network error: ${error.message || 'Unable to connect to server'}`,
+        type: 'error',
+      });
+      setApis([]);
     } finally {
       setLoading(false);
     }
@@ -66,7 +111,12 @@ export function PaymentUI({ balance, setBalance }: PaymentUIProps) {
 
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/call-api', {
+      
+      // Use X402-enabled fetch for automatic payment handling
+      const { getApiUrl } = await import('@/lib/api-config');
+      const apiUrl = getApiUrl();
+      const { makePaidRequest } = await import('@/lib/x402-client');
+      const response = await makePaidRequest(`${apiUrl}/api/call-api`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -103,10 +153,11 @@ export function PaymentUI({ balance, setBalance }: PaymentUIProps) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.error || 'API call failed');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('API call error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to call API. Please try again.';
       setNotification({
-        message: error.message || 'Failed to call API. Please try again.',
+        message: errorMessage,
         type: 'error',
       });
     } finally {
@@ -117,32 +168,37 @@ export function PaymentUI({ balance, setBalance }: PaymentUIProps) {
   if (loading) {
     return (
       <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading APIs...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#0d6efd] border-t-transparent mx-auto"></div>
+        <p className="mt-4 text-[#6c757d]">Loading APIs...</p>
       </div>
     );
   }
 
   return (
-    <div>
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">API Marketplace</h2>
-            <p className="text-gray-600">
+    <div className="animate-fade-in">
+      {!compact && (
+      <div className="mb-6 sm:mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-6 gap-4">
+          <div className="flex-1">
+            <h2 className="text-2xl sm:text-3xl font-bold text-[#212529] mb-2">API Marketplace</h2>
+            <p className="text-[#6c757d] text-sm sm:text-base">
               Premium APIs at micro-prices. Pay only for what you use.
             </p>
           </div>
-          <div className="flex items-center space-x-4">
-            <div className="text-right">
-              <p className="text-xs text-gray-500">Your Balance</p>
-              <p className="text-2xl font-bold text-green-600">
+          <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:w-auto">
+            <div className="text-right retro-card rounded-lg px-4 py-2 sm:px-5 sm:py-3 flex-1 sm:flex-none">
+              <p className="text-xs text-[#6c757d] mb-1">Balance</p>
+              <p className="text-xl sm:text-2xl font-bold text-[#212529]">
                 ${balance.toFixed(4)} USDC
               </p>
             </div>
             <button
               onClick={() => setShowTopUp(true)}
-              className="bg-green-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-green-700 transition-colors shadow-md hover:shadow-lg"
+              className="px-4 py-2 sm:px-6 sm:py-3 rounded-lg text-sm sm:text-base whitespace-nowrap
+              font-mono border-2 border-black bg-white text-black
+              hover:bg-black hover:text-white transition-colors duration-150
+              shadow-[3px_3px_0_0_black] active:shadow-none active:translate-x-[3px] active:translate-y-[3px]"
+              style={{ textShadow: 'none' }}
             >
               Top Up
             </button>
@@ -150,27 +206,28 @@ export function PaymentUI({ balance, setBalance }: PaymentUIProps) {
         </div>
         
         {/* Stats Bar */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm text-gray-500 mb-1">Total APIs</p>
-            <p className="text-2xl font-bold text-gray-900">{apis.length}</p>
+        <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="retro-card rounded-lg p-3 sm:p-5">
+            <p className="text-xs sm:text-sm text-[#6c757d] mb-1 sm:mb-2">Total APIs</p>
+            <p className="text-xl sm:text-3xl font-bold text-[#212529]">{apis.length}</p>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm text-gray-500 mb-1">Avg Price</p>
-            <p className="text-2xl font-bold text-gray-900">
+          <div className="retro-card rounded-lg p-3 sm:p-5">
+            <p className="text-xs sm:text-sm text-[#6c757d] mb-1 sm:mb-2">Avg Price</p>
+            <p className="text-xl sm:text-3xl font-bold text-[#212529]">
               ${apis.length > 0 
                 ? (apis.reduce((sum, api) => sum + api.pricePerCall, 0) / apis.length).toFixed(4)
                 : '0.0000'}
             </p>
           </div>
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <p className="text-sm text-gray-500 mb-1">Total Calls</p>
-            <p className="text-2xl font-bold text-gray-900">
+          <div className="retro-card rounded-lg p-3 sm:p-5">
+            <p className="text-xs sm:text-sm text-[#6c757d] mb-1 sm:mb-2">Total Calls</p>
+            <p className="text-xl sm:text-3xl font-bold text-[#212529]">
               {apis.reduce((sum, api) => sum + api.totalCalls, 0).toLocaleString()}
             </p>
           </div>
         </div>
       </div>
+      )}
 
       {loading ? (
         <div className="text-center py-12">
@@ -178,54 +235,44 @@ export function PaymentUI({ balance, setBalance }: PaymentUIProps) {
           <p className="mt-4 text-gray-600">Loading APIs...</p>
         </div>
       ) : apis.length === 0 ? (
-        <div className="text-center py-12 bg-white rounded-lg border border-gray-200">
-          <svg
-            className="mx-auto h-12 w-12 text-gray-400"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-            />
-          </svg>
-          <p className="mt-4 text-gray-500">No APIs available yet. Check back soon!</p>
+        <div className="text-center py-16 retro-card rounded-lg">
+          <div className="text-[#6c757d] text-6xl mb-4">📦</div>
+          <p className="mt-4 text-[#6c757d] text-lg">
+            No APIs available yet. Check back soon!
+          </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className={`grid gap-3 sm:gap-4 ${compact ? 'grid-cols-1' : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'}`}>
           {apis.map((api) => (
             <div
               key={api.id}
-              className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-xl transition-all duration-200 transform hover:-translate-y-1"
+              className="retro-card rounded-lg p-4 sm:p-6 transition-all duration-200 hover:shadow-md animate-fade-in"
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    {api.icon && <span className="text-2xl">{api.icon}</span>}
-                    <h3 className="text-xl font-bold text-gray-900">{api.name}</h3>
+              <div className="flex items-start justify-between mb-3 sm:mb-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-2 mb-2">
+                    {api.icon && <span className="text-2xl sm:text-3xl">{api.icon}</span>}
+                    <h3 className="text-lg sm:text-xl font-bold text-[#212529] truncate">{api.name}</h3>
                   </div>
-                  <p className="text-sm text-gray-600 mb-2">{api.description}</p>
+                  <p className="text-xs sm:text-sm text-[#6c757d] mb-2 sm:mb-3 leading-relaxed line-clamp-2">{api.description}</p>
                   {api.category && (
-                    <span className="inline-block px-2 py-1 text-xs font-semibold text-blue-700 bg-blue-100 rounded">
+                    <span className="inline-block px-2 py-1 text-xs font-semibold retro-badge rounded">
                       {api.category}
                     </span>
                   )}
                 </div>
-                <div className="ml-4">
-                  <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                <div className="ml-2 sm:ml-4 flex-shrink-0">
+                  <div className="w-10 h-10 sm:w-14 sm:h-14 retro-card rounded-lg flex items-center justify-center">
                     <svg
-                      className="w-6 h-6 text-blue-600"
+                      className="w-5 h-5 sm:w-7 sm:h-7 text-[#0d6efd]"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
+                      strokeWidth={2}
                     >
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
-                        strokeWidth={2}
                         d="M13 10V3L4 14h7v7l9-11h-7z"
                       />
                     </svg>
@@ -233,48 +280,56 @@ export function PaymentUI({ balance, setBalance }: PaymentUIProps) {
                 </div>
               </div>
 
-              <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                <div className="flex items-baseline justify-between">
+              <div className="mb-4 sm:mb-5 p-3 sm:p-4 retro-card rounded-lg bg-[#f8f9fa]">
+                <div className="flex flex-col sm:flex-row sm:items-baseline sm:justify-between gap-2">
                   <div>
-                    <span className="text-3xl font-bold text-green-600">
+                    <span className="text-2xl sm:text-3xl font-bold text-[#212529]">
                       ${api.pricePerCall.toFixed(4)}
                     </span>
-                    <span className="text-sm text-gray-500 ml-1">/call</span>
+                    <span className="text-xs sm:text-sm text-[#6c757d] ml-1">/call</span>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500">Popularity</p>
-                    <p className="text-sm font-semibold text-gray-700">
+                  <div className="text-left sm:text-right">
+                    <p className="text-xs text-[#6c757d]">Popularity</p>
+                    <p className="text-sm font-semibold text-[#212529]">
                       {api.totalCalls.toLocaleString()} calls
                     </p>
                   </div>
                 </div>
               </div>
 
-              <button
-                onClick={() => handleCallAPI(api)}
-                disabled={calling === api.id || balance < api.pricePerCall}
-                className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
-                  calling === api.id
-                    ? 'bg-blue-400 text-white cursor-wait'
-                    : balance < api.pricePerCall
-                    ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                    : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-lg transform hover:scale-105'
-                }`}
-              >
-                {calling === api.id ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Calling API...
-                  </span>
-                ) : balance < api.pricePerCall ? (
-                  'Insufficient Balance'
-                ) : (
-                  'Use API'
-                )}
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedAPI(api)}
+                  className="flex-1 py-2.5 sm:py-3 px-4 rounded-lg font-semibold transition-all duration-200 text-sm sm:text-base retro-button border border-[#0d6efd] text-[#0d6efd] bg-white hover:bg-[#0d6efd] hover:text-white"
+                >
+                  View Details
+                </button>
+                <button
+                  onClick={() => handleCallAPI(api)}
+                  disabled={calling === api.id || balance < api.pricePerCall}
+                  className={`flex-1 py-2.5 sm:py-3 px-4 rounded-lg font-semibold transition-all duration-200 text-sm sm:text-base ${
+                    calling === api.id
+                      ? 'retro-button-primary cursor-wait opacity-75'
+                      : balance < api.pricePerCall
+                      ? 'bg-[#e9ecef] text-[#6c757d] border border-[#dee2e6] cursor-not-allowed'
+                      : 'retro-button retro-button-primary'
+                  }`}
+                >
+                  {calling === api.id ? (
+                    <span className="flex items-center justify-center">
+                      <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      Calling...
+                    </span>
+                  ) : balance < api.pricePerCall ? (
+                    'Insufficient'
+                  ) : (
+                    'Try Now'
+                  )}
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -320,6 +375,16 @@ export function PaymentUI({ balance, setBalance }: PaymentUIProps) {
             setShowTopUp(false);
           }}
           onClose={() => setShowTopUp(false)}
+        />
+      )}
+
+      {/* API Detail View */}
+      {selectedAPI && (
+        <APIDetailView
+          api={selectedAPI}
+          balance={balance}
+          setBalance={setBalance}
+          onClose={() => setSelectedAPI(null)}
         />
       )}
 

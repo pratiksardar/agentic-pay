@@ -1,28 +1,183 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8f9fa;
+  --bg-tertiary: #f1f3f5;
+  --border-color: #e9ecef;
+  --text-primary: #212529;
+  --text-secondary: #6c757d;
+  --accent-blue: #0d6efd;
+  --accent-green: #198754;
+  --accent-amber: #ffc107;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-background: var(--bg-primary);
+  --color-foreground: var(--text-primary);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  background: var(--bg-secondary);
+  background-image: 
+    radial-gradient(circle at 1px 1px, rgba(0, 0, 0, 0.03) 1px, transparent 0);
+  background-size: 24px 24px;
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+  position: relative;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Clean card styling - inspired by BurnerOS */
+.retro-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.retro-card:hover {
+  box-shadow: var(--shadow-md);
+  border-color: var(--accent-blue);
+}
+
+/* Mobile-optimized card */
+@media (max-width: 768px) {
+  .retro-card {
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* Clean button styling - mobile-friendly */
+.retro-button {
+  background: var(--bg-primary);
+  border: 1.5px solid var(--text-primary);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  transition: all 0.2s ease;
+  position: relative;
+  border-radius: 6px;
+  padding: 12px 24px;
+  font-size: 14px;
+}
+
+.retro-button:hover {
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.retro-button:active {
+  transform: translateY(0);
+  box-shadow: var(--shadow-sm);
+}
+
+.retro-button-primary {
+  background: var(--accent-blue);
+  border-color: var(--accent-blue);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.retro-button-primary:hover {
+  background: #0b5ed7;
+  border-color: #0b5ed7;
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+.retro-button-success {
+  background: var(--accent-green);
+  border-color: var(--accent-green);
+  color: white;
+  box-shadow: var(--shadow-sm);
+}
+
+.retro-button-success:hover {
+  background: #157347;
+  border-color: #157347;
+  color: white;
+  box-shadow: var(--shadow-md);
+}
+
+/* Mobile button sizing */
+@media (max-width: 768px) {
+  .retro-button {
+    padding: 14px 28px;
+    font-size: 16px;
+    width: 100%;
+  }
+}
+
+/* Clean header styling - mobile optimized */
+.retro-header {
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  position: relative;
+  backdrop-filter: blur(10px);
+}
+
+/* Mobile header adjustments */
+@media (max-width: 768px) {
+  .retro-header {
+    padding: 12px 16px;
+  }
+}
+
+/* Clean badge styling */
+.retro-badge {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 12px;
+}
+
+/* Clean input styling - mobile-friendly */
+.retro-input {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-primary);
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 16px; /* Prevents zoom on iOS */
+  width: 100%;
+  transition: all 0.2s ease;
+}
+
+.retro-input:focus {
+  outline: none;
+  border-color: var(--accent-blue);
+  box-shadow: 
+    var(--shadow-sm),
+    0 0 0 3px rgba(13, 110, 253, 0.1);
+}
+
+/* Mobile input adjustments */
+@media (max-width: 768px) {
+  .retro-input {
+    font-size: 16px; /* Prevents iOS zoom */
+    padding: 14px 16px;
+  }
 }
 
 /* Animations */
@@ -37,6 +192,82 @@ body {
   }
 }
 
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
 .animate-slide-in {
   animation: slide-in 0.3s ease-out;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out;
+}
+
+/* Terminal text effects */
+.retro-text-shadow {
+  text-shadow: 0 0 10px var(--terminal-glow);
+}
+
+.retro-gold-text {
+  color: var(--terminal-amber);
+  text-shadow: 
+    0 0 10px var(--terminal-amber),
+    0 0 20px var(--terminal-amber);
+  font-weight: 700;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+}
+
+/* Terminal divider */
+.retro-divider {
+  height: 1px;
+  background: var(--terminal-fg);
+  box-shadow: 0 0 10px var(--terminal-fg);
+  margin: 1.5rem 0;
+  animation: terminal-glow 2s ease-in-out infinite;
+}
+
+/* Terminal prompt */
+.terminal-prompt {
+  color: var(--terminal-amber);
+  font-family: 'Courier New', monospace;
+}
+
+.terminal-prompt::before {
+  content: '> ';
+  color: var(--terminal-fg);
+  margin-right: 0.5rem;
+}
+
+/* Terminal cursor blink */
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: var(--terminal-fg);
+  margin-left: 2px;
+  animation: blink 1s infinite;
+  box-shadow: 0 0 10px var(--terminal-fg);
 }

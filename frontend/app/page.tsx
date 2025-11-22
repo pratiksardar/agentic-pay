@@ -28,9 +28,29 @@ declare global {
 }
 
 export default function Home() {
-  // Initialize verified state from localStorage
+  // Check if World ID verification is enabled via feature flag
+  const worldIdEnabled = process.env.NEXT_PUBLIC_ENABLE_WORLD_ID_VERIFICATION !== 'false';
+  
+  // Initialize verified state from localStorage or feature flag
   const [isVerified, setIsVerified] = useState(() => {
     if (typeof window !== 'undefined') {
+      // If World ID is disabled, auto-verify for testing
+      if (!worldIdEnabled) {
+        console.log('⚠️ World ID verification is DISABLED (testing mode)');
+        // Create mock auth token and nullifier for testing
+        const mockData = {
+          nullifier: 'test-nullifier-1234567890abcdef',
+          verified: true,
+          timestamp: Date.now(),
+          testMode: true,
+        };
+        // Use btoa for base64 encoding in browser
+        const mockToken = btoa(JSON.stringify(mockData));
+        localStorage.setItem('auth_token', mockToken);
+        localStorage.setItem('nullifier', 'test-nullifier-1234567890abcdef');
+        localStorage.setItem('world_id_verified', 'true');
+        return true;
+      }
       return localStorage.getItem('world_id_verified') === 'true';
     }
     return false;
@@ -38,6 +58,13 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // If World ID is disabled, skip MiniKit check and go straight to dashboard
+    if (!worldIdEnabled) {
+      console.log('✅ World ID verification disabled - skipping to dashboard');
+      setLoading(false);
+      return;
+    }
+
     // Check MiniKit availability using official API
     const checkMiniKit = () => {
       if (typeof window === 'undefined') return false;
@@ -86,7 +113,7 @@ export default function Home() {
       timers.forEach(timer => clearTimeout(timer));
       window.removeEventListener('load', handleLoad);
     };
-  }, []);
+  }, [worldIdEnabled]);
 
   const handleVerificationSuccess = () => {
     setIsVerified(true);
@@ -95,21 +122,21 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
+      <div className="flex min-h-screen items-center justify-center bg-[#f8f9fa]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading HumanPay...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-[#0d6efd] border-t-transparent mx-auto"></div>
+          <p className="mt-4 text-[#6c757d]">Loading HumanPay...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {!isVerified ? (
-        <WorldIDVerifier onVerificationSuccess={handleVerificationSuccess} />
-      ) : (
+    <div className="min-h-screen relative bg-[#f8f9fa]">
+      {!worldIdEnabled || isVerified ? (
         <Dashboard />
+      ) : (
+        <WorldIDVerifier onVerificationSuccess={handleVerificationSuccess} />
       )}
     </div>
   );

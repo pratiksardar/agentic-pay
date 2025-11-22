@@ -1,0 +1,45 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "outputDirectory": ".next",
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/:path*",
+      "headers": [
+        {
+          "key": "X-Frame-Options",
+          "value": "ALLOWALL"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "frame-ancestors *"
+        },
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_WORLD_ID_APP_ID": "@world_id_app_id",
+    "NEXT_PUBLIC_WORLD_ID_ACTION_ID": "@world_id_action_id",
+    "NEXT_PUBLIC_API_URL": "@api_url",
+    "NEXT_PUBLIC_WORLD_CHAIN_RPC_URL": "@world_chain_rpc_url",
+    "NEXT_PUBLIC_CDP_API_KEY_ID": "@cdp_api_key_id",
+    "NEXT_PUBLIC_CDP_API_KEY_SECRET": "@cdp_api_key_secret",
+    "NEXT_PUBLIC_ENABLE_WORLD_ID_VERIFICATION": "@enable_world_id_verification"
+  }
+}

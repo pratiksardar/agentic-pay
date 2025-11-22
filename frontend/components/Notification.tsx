@@ -19,25 +19,25 @@ export function Notification({ message, type, onClose, duration = 5000 }: Notifi
   }, [onClose, duration]);
 
   const bgColor = {
-    success: 'bg-green-50 border-green-200',
-    error: 'bg-red-50 border-red-200',
-    info: 'bg-blue-50 border-blue-200',
+    success: 'bg-white border-[#198754]',
+    error: 'bg-white border-red-500',
+    info: 'bg-white border-[#0d6efd]',
   }[type];
 
   const textColor = {
-    success: 'text-green-800',
-    error: 'text-red-800',
-    info: 'text-blue-800',
+    success: 'text-[#198754]',
+    error: 'text-red-600',
+    info: 'text-[#0d6efd]',
   }[type];
 
   const iconColor = {
-    success: 'text-green-600',
+    success: 'text-[#198754]',
     error: 'text-red-600',
-    info: 'text-blue-600',
+    info: 'text-[#0d6efd]',
   }[type];
 
   return (
-    <div className={`fixed top-4 right-4 z-50 ${bgColor} border rounded-lg shadow-lg p-4 min-w-[300px] max-w-md animate-slide-in`}>
+    <div className={`fixed top-4 right-4 z-50 ${bgColor} border rounded-lg shadow-lg p-4 min-w-[280px] max-w-md animate-slide-in retro-card`}>
       <div className="flex items-start">
         <div className={`flex-shrink-0 ${iconColor}`}>
           {type === 'success' && (
@@ -57,7 +57,7 @@ export function Notification({ message, type, onClose, duration = 5000 }: Notifi
           )}
         </div>
         <div className="ml-3 flex-1">
-          <p className={`text-sm font-medium ${textColor}`}>{message}</p>
+          <p className={`text-sm font-semibold ${textColor}`}>{message}</p>
         </div>
         <button
           onClick={onClose}
