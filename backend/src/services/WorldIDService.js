@@ -23,11 +23,6 @@ class WorldIDService {
       return response.data.valid === true;
     } catch (error) {
       console.error('World ID verification failed:', error.response?.data || error.message);
-      // For development, allow mock verification
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('⚠️  Development mode: Allowing mock verification');
-        return true;
-      }
       return false;
     }
   }

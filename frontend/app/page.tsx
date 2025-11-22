@@ -1,35 +1,91 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { MiniKit } from '@worldcoin/minikit-js';
 import { WorldIDVerifier } from '@/components/WorldIDVerifier';
 import { Dashboard } from '@/components/Dashboard';
 
+// MiniKit type definition
+interface MiniKitType {
+  isInstalled: () => boolean;
+  commandsAsync?: {
+    verify: (payload: { action: string; signal?: string; verification_level?: string }) => Promise<{
+      finalPayload?: {
+        status: string;
+        proof?: unknown;
+        nullifier_hash?: string;
+        merkle_root?: string;
+        error?: string;
+      };
+    }>;
+  };
+  [key: string]: unknown;
+}
+
+declare global {
+  interface Window {
+    MiniKit?: MiniKitType;
+  }
+}
+
 export default function Home() {
-  const [isVerified, setIsVerified] = useState(false);
-  const [minikit, setMinikit] = useState<MiniKit | null>(null);
+  // Initialize verified state from localStorage
+  const [isVerified, setIsVerified] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('world_id_verified') === 'true';
+    }
+    return false;
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initialize MiniKit SDK
-    const initMiniKit = async () => {
-      try {
-        const kit = await MiniKit.init({
-          app_id: process.env.NEXT_PUBLIC_WORLD_ID_APP_ID || '',
-        });
-        setMinikit(kit);
-        
-        // Check if user is already verified
-        const verified = localStorage.getItem('world_id_verified') === 'true';
-        setIsVerified(verified);
-      } catch (error) {
-        console.error('Failed to initialize MiniKit:', error);
-      } finally {
+    // Check MiniKit availability using official API
+    const checkMiniKit = () => {
+      if (typeof window === 'undefined') return false;
+      
+      const minikit = window.MiniKit;
+      if (minikit && typeof minikit.isInstalled === 'function') {
+        const installed = minikit.isInstalled();
+        console.log('📱 MiniKit.isInstalled():', installed);
+        return installed;
+      }
+      return false;
+    };
+
+    // MiniKit might load asynchronously - check with delays
+    const delays = [0, 100, 300, 500, 1000, 2000];
+    const timers: NodeJS.Timeout[] = [];
+    
+    delays.forEach((delay) => {
+      const timer = setTimeout(() => {
+        if (checkMiniKit()) {
+          setLoading(false);
+          timers.forEach(t => clearTimeout(t));
+        } else if (delay === delays[delays.length - 1]) {
+          // Last attempt
+          console.warn('⚠️ MiniKit not available. Make sure you\'re opening this app from within World App.');
+          setLoading(false);
+        }
+      }, delay);
+      timers.push(timer);
+    });
+
+    // Also check on window load
+    const handleLoad = () => {
+      if (checkMiniKit()) {
         setLoading(false);
       }
     };
+    
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      setTimeout(handleLoad, 0);
+    } else {
+      window.addEventListener('load', handleLoad);
+    }
 
-    initMiniKit();
+    return () => {
+      timers.forEach(timer => clearTimeout(timer));
+      window.removeEventListener('load', handleLoad);
+    };
   }, []);
 
   const handleVerificationSuccess = () => {
@@ -51,12 +107,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {!isVerified ? (
-        <WorldIDVerifier 
-          minikit={minikit}
-          onVerificationSuccess={handleVerificationSuccess}
-        />
+        <WorldIDVerifier onVerificationSuccess={handleVerificationSuccess} />
       ) : (
-        <Dashboard minikit={minikit} />
+        <Dashboard />
       )}
     </div>
   );

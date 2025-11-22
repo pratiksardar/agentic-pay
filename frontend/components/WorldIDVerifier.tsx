@@ -1,37 +1,110 @@
 'use client';
 
-import { useState } from 'react';
-import { MiniKit } from '@worldcoin/minikit-js';
-// Note: Using standard button for now - UI Kit Button can be added later
+import { useState, useEffect } from 'react';
+import { verifyWithWorldID, getMiniKit, isMiniKitAvailable } from '@/lib/minikit';
+import { MiniKitDebug } from './MiniKitDebug';
 
 interface WorldIDVerifierProps {
-  minikit: MiniKit | null;
   onVerificationSuccess: () => void;
 }
 
-export function WorldIDVerifier({ minikit, onVerificationSuccess }: WorldIDVerifierProps) {
+export function WorldIDVerifier({ onVerificationSuccess }: WorldIDVerifierProps) {
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [debugInfo, setDebugInfo] = useState<string>('');
+
+  // Debug: Check for MiniKit on mount and periodically
+  useEffect(() => {
+    const checkMiniKit = () => {
+      const kit = (window as any).MiniKit;
+      const info: any = {
+        hasWindowMiniKit: !!kit,
+        hasReactNativeWebView: !!(window as any).ReactNativeWebView,
+        userAgent: navigator.userAgent,
+        windowKeys: Object.keys(window).filter(k => 
+          k.toLowerCase().includes('mini') || 
+          k.toLowerCase().includes('world') ||
+          k.toLowerCase().includes('reactnative') ||
+          k.toLowerCase().includes('webview')
+        ),
+        documentReadyState: document.readyState,
+        locationHref: window.location.href,
+      };
+      
+      // If MiniKit exists, get more details
+      if (kit) {
+        info.minikitDetails = {
+          type: typeof kit,
+          hasIsInstalled: typeof kit.isInstalled === 'function',
+          hasCommandsAsync: !!kit.commandsAsync,
+          hasCommands: !!kit.commands,
+          keys: typeof kit === 'object' ? Object.keys(kit).slice(0, 20) : [],
+        };
+        
+        // Try to call isInstalled if available
+        if (typeof kit.isInstalled === 'function') {
+          try {
+            info.minikitDetails.isInstalled = kit.isInstalled();
+          } catch (e) {
+            info.minikitDetails.isInstalledError = String(e);
+          }
+        }
+      }
+      
+      setDebugInfo(JSON.stringify(info, null, 2));
+      console.log('🔍 MiniKit Debug Info:', info);
+    };
+
+    checkMiniKit();
+    const interval = setInterval(checkMiniKit, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleVerify = async () => {
-    if (!minikit) {
-      setError('MiniKit not initialized');
-      return;
-    }
-
     setVerifying(true);
     setError(null);
 
     try {
-      // Verify with World ID using MiniKit
-      const result = await minikit.verify({
-        signal: 'humanpay-verification',
-        action: 'humanpay-verify',
-      });
+      // Get MiniKit directly from window (provided by MiniKitProvider)
+      const minikit = typeof window !== 'undefined' ? window.MiniKit : null;
+      
+      if (!minikit) {
+        throw new Error('MiniKit is not available. Please make sure you\'re opening this app from within World App.');
+      }
+
+      // Check if installed
+      if (typeof minikit.isInstalled === 'function' && !minikit.isInstalled()) {
+        throw new Error('MiniKit is not installed. Please open this app from within World App.');
+      }
+
+      const appId = process.env.NEXT_PUBLIC_WORLD_ID_APP_ID || '';
+      if (!appId) {
+        throw new Error('World ID App ID not configured. Please check your environment variables.');
+      }
+
+      // Use the utility function to verify
+      let result: any = null;
+      try {
+        result = await verifyWithWorldID(
+          'humanpay-verification',
+          'humanpay-verify',
+          appId,
+          minikit
+        );
+      } catch (verifyError: any) {
+        console.error('Verification error:', verifyError);
+        throw verifyError;
+      }
+
+      // Require real World ID verification - no mock fallback
+      if (!result) {
+        throw new Error('World ID verification failed. Please make sure you\'re using World App and have completed the verification process.');
+      }
 
       if (result.success) {
         // Send verification to backend
-        const response = await fetch('/api/auth/verify', {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const response = await fetch(`${apiUrl}/api/auth/verify`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -49,7 +122,8 @@ export function WorldIDVerifier({ minikit, onVerificationSuccess }: WorldIDVerif
           localStorage.setItem('nullifier', result.nullifier);
           onVerificationSuccess();
         } else {
-          throw new Error('Backend verification failed');
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.error || 'Backend verification failed');
         }
       } else {
         throw new Error('World ID verification failed');
@@ -98,11 +172,31 @@ export function WorldIDVerifier({ minikit, onVerificationSuccess }: WorldIDVerif
         <div className="space-y-4">
           <button
             onClick={handleVerify}
-            disabled={verifying || !minikit}
+            disabled={verifying}
             className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
             {verifying ? 'Verifying...' : 'Verify with World ID'}
           </button>
+          
+          {typeof window !== 'undefined' && !window.MiniKit && (
+            <div className="mt-2 space-y-2">
+              <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <p className="text-xs text-yellow-800 mb-2">
+                  ⚠️ <strong>MiniKit not detected:</strong> Please make sure you're opening this app from within World App.
+                </p>
+                <button
+                  onClick={() => {
+                    // Retry by reloading
+                    window.location.reload();
+                  }}
+                  className="text-xs text-blue-600 hover:text-blue-800 underline"
+                >
+                  Retry Detection
+                </button>
+              </div>
+              <MiniKitDebug />
+            </div>
+          )}
 
           <div className="text-center text-sm text-gray-500">
             <p>Your privacy is protected with zero-knowledge proofs</p>

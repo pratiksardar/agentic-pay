@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MiniKit } from '@worldcoin/minikit-js';
 
 interface Agent {
   id: string;
@@ -12,11 +11,7 @@ interface Agent {
   status: 'active' | 'paused' | 'exhausted';
 }
 
-interface AgentDashboardProps {
-  minikit: MiniKit | null;
-}
-
-export function AgentDashboard({ minikit }: AgentDashboardProps) {
+export function AgentDashboard() {
   const [agents, setAgents] = useState<Agent[]>([]);
   const [loading, setLoading] = useState(true);
   const [showDeployModal, setShowDeployModal] = useState(false);

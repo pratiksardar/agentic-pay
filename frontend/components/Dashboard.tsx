@@ -1,16 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MiniKit } from '@worldcoin/minikit-js';
 import Link from 'next/link';
 import { PaymentUI } from './PaymentUI';
 import { AgentDashboard } from './AgentDashboard';
 
-interface DashboardProps {
-  minikit: MiniKit | null;
-}
-
-export function Dashboard({ minikit }: DashboardProps) {
+export function Dashboard() {
   const [activeTab, setActiveTab] = useState<'marketplace' | 'agents'>('marketplace');
   const [balance, setBalance] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -107,9 +102,9 @@ export function Dashboard({ minikit }: DashboardProps) {
       {/* Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {activeTab === 'marketplace' ? (
-          <PaymentUI minikit={minikit} balance={balance} setBalance={setBalance} />
+          <PaymentUI balance={balance} setBalance={setBalance} />
         ) : (
-          <AgentDashboard minikit={minikit} />
+          <AgentDashboard />
         )}
       </main>
     </div>

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { MiniKit } from '@worldcoin/minikit-js';
 
 interface API {
   id: string;
@@ -13,12 +12,11 @@ interface API {
 }
 
 interface PaymentUIProps {
-  minikit: MiniKit | null;
   balance: number;
   setBalance: (balance: number) => void;
 }
 
-export function PaymentUI({ minikit, balance, setBalance }: PaymentUIProps) {
+export function PaymentUI({ balance, setBalance }: PaymentUIProps) {
   const [apis, setApis] = useState<API[]>([]);
   const [loading, setLoading] = useState(true);
   const [calling, setCalling] = useState<string | null>(null);
