@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { MiniKitProvider } from "@worldcoin/minikit-js/minikit-provider";
 import "@worldcoin/mini-apps-ui-kit-react/styles.css";
 import "./globals.css";
+import { ErudaDebug } from "@/components/ErudaDebug";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -49,6 +50,7 @@ export default function RootLayout({
         <body
           className={`${geistSans.variable} ${geistMono.variable} antialiased`}
         >
+          <ErudaDebug />
           {children}
         </body>
       </MiniKitProvider>
