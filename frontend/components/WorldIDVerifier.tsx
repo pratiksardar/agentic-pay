@@ -79,14 +79,26 @@ export function WorldIDVerifier({ onVerificationSuccess }: WorldIDVerifierProps)
 
       console.log('🔐 Starting World ID verification:', { action, verificationLevel });
 
+      // Signal should be consistent - use undefined or empty string
+      // If you want to use a signal, pass it during verification AND verification
+      const signal = undefined; // No signal for now - can be changed to a string if needed
+
       // Use MiniKit.commandsAsync.verify() directly (matches reference implementation)
       const result = await MiniKit.commandsAsync.verify({
         action, // Action ID from Developer Portal
         verification_level: verificationLevel,
+        signal, // Pass signal here if you want to use one
       });
 
       console.log('✅ MiniKit verification result:', result);
       console.log('📦 finalPayload:', result.finalPayload);
+      console.log('📦 Payload structure:', {
+        hasProof: !!result.finalPayload.proof,
+        hasNullifier: !!result.finalPayload.nullifier_hash,
+        hasMerkleRoot: !!result.finalPayload.merkle_root,
+        status: result.finalPayload.status,
+        keys: Object.keys(result.finalPayload),
+      });
 
       // Check if verification was successful
       if (result.finalPayload.status !== 'success') {
@@ -94,6 +106,7 @@ export function WorldIDVerifier({ onVerificationSuccess }: WorldIDVerifierProps)
       }
 
       // Send verification to backend API route (matches reference implementation)
+      // IMPORTANT: signal must match what was used during verification
       const response = await fetch('/api/verify-proof', {
         method: 'POST',
         headers: {
@@ -102,7 +115,7 @@ export function WorldIDVerifier({ onVerificationSuccess }: WorldIDVerifierProps)
         body: JSON.stringify({
           payload: result.finalPayload,
           action: action,
-          signal: 'humanpay-verification',
+          signal: signal, // Must match the signal used during verification
         }),
       });
 
