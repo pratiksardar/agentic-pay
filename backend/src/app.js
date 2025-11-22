@@ -10,7 +10,36 @@ app.use(helmet({
   contentSecurityPolicy: false, // Allow iframe embedding for mini app
 }));
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, Postman, or curl)
+    if (!origin) return callback(null, true);
+    
+    const allowedOrigins = [
+      process.env.FRONTEND_URL || 'http://localhost:3000',
+      'http://localhost:3000',
+      // Allow zrok/ngrok tunnels (common patterns)
+      /^https?:\/\/.*\.share\.zrok\.io$/,
+      /^https?:\/\/.*\.ngrok\.io$/,
+      /^https?:\/\/.*\.ngrok-free\.app$/,
+    ];
+    
+    // Check if origin matches any allowed pattern
+    const isAllowed = allowedOrigins.some(allowed => {
+      if (typeof allowed === 'string') {
+        return origin === allowed;
+      } else if (allowed instanceof RegExp) {
+        return allowed.test(origin);
+      }
+      return false;
+    });
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      console.warn('⚠️ CORS blocked origin:', origin);
+      callback(null, true); // Allow for now, but log warning
+    }
+  },
   credentials: true,
 }));
 app.use(express.json());

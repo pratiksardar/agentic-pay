@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { verifyWithWorldID, getMiniKit, isMiniKitAvailable } from '@/lib/minikit';
+import { MiniKit, VerificationLevel } from '@worldcoin/minikit-js';
+import { useMiniKit } from '@worldcoin/minikit-js/minikit-provider';
 import { MiniKitDebug } from './MiniKitDebug';
 
 interface WorldIDVerifierProps {
@@ -12,6 +13,7 @@ export function WorldIDVerifier({ onVerificationSuccess }: WorldIDVerifierProps)
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [debugInfo, setDebugInfo] = useState<string>('');
+  const { isInstalled } = useMiniKit();
 
   // Debug: Check for MiniKit on mount and periodically
   useEffect(() => {
@@ -60,76 +62,67 @@ export function WorldIDVerifier({ onVerificationSuccess }: WorldIDVerifierProps)
     return () => clearInterval(interval);
   }, []);
 
-  const handleVerify = async () => {
+  const handleVerify = async (verificationLevel: VerificationLevel = VerificationLevel.Orb) => {
+    if (!isInstalled || verifying) {
+      return;
+    }
+
     setVerifying(true);
     setError(null);
 
     try {
-      // Get MiniKit directly from window (provided by MiniKitProvider)
-      const minikit = typeof window !== 'undefined' ? window.MiniKit : null;
+      const action = process.env.NEXT_PUBLIC_WORLD_ID_ACTION_ID || 'humanpay-verify';
       
-      if (!minikit) {
-        throw new Error('MiniKit is not available. Please make sure you\'re opening this app from within World App.');
+      if (!action) {
+        throw new Error('World ID Action ID not configured. Please check your environment variables.');
       }
 
-      // Check if installed
-      if (typeof minikit.isInstalled === 'function' && !minikit.isInstalled()) {
-        throw new Error('MiniKit is not installed. Please open this app from within World App.');
+      console.log('🔐 Starting World ID verification:', { action, verificationLevel });
+
+      // Use MiniKit.commandsAsync.verify() directly (matches reference implementation)
+      const result = await MiniKit.commandsAsync.verify({
+        action, // Action ID from Developer Portal
+        verification_level: verificationLevel,
+      });
+
+      console.log('✅ MiniKit verification result:', result);
+      console.log('📦 finalPayload:', result.finalPayload);
+
+      // Check if verification was successful
+      if (result.finalPayload.status !== 'success') {
+        throw new Error(result.finalPayload.error_code || 'Verification failed');
       }
 
-      const appId = process.env.NEXT_PUBLIC_WORLD_ID_APP_ID || '';
-      if (!appId) {
-        throw new Error('World ID App ID not configured. Please check your environment variables.');
-      }
+      // Send verification to backend API route (matches reference implementation)
+      const response = await fetch('/api/verify-proof', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          payload: result.finalPayload,
+          action: action,
+          signal: 'humanpay-verification',
+        }),
+      });
 
-      // Use the utility function to verify
-      let result: any = null;
-      try {
-        result = await verifyWithWorldID(
-          'humanpay-verification',
-          'humanpay-verify',
-          appId,
-          minikit
-        );
-      } catch (verifyError: any) {
-        console.error('Verification error:', verifyError);
-        throw verifyError;
-      }
+      const data = await response.json();
+      console.log('📥 Backend verification response:', data);
 
-      // Require real World ID verification - no mock fallback
-      if (!result) {
-        throw new Error('World ID verification failed. Please make sure you\'re using World App and have completed the verification process.');
-      }
-
-      if (result.success) {
-        // Send verification to backend
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-        const response = await fetch(`${apiUrl}/api/auth/verify`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            proof: result.proof,
-            nullifier: result.nullifier,
-            signal: 'humanpay-verification',
-          }),
-        });
-
-        if (response.ok) {
-          const data = await response.json();
+      if (data.verifyRes?.success) {
+        // Store auth token and nullifier
+        if (data.token) {
           localStorage.setItem('auth_token', data.token);
-          localStorage.setItem('nullifier', result.nullifier);
-          onVerificationSuccess();
-        } else {
-          const errorData = await response.json().catch(() => ({}));
-          throw new Error(errorData.error || 'Backend verification failed');
         }
+        if (result.finalPayload.nullifier_hash) {
+          localStorage.setItem('nullifier', result.finalPayload.nullifier_hash);
+        }
+        onVerificationSuccess();
       } else {
-        throw new Error('World ID verification failed');
+        throw new Error(data.verifyRes?.error || 'Backend verification failed');
       }
     } catch (err: any) {
-      console.error('Verification error:', err);
+      console.error('❌ Verification error:', err);
       setError(err.message || 'Verification failed. Please try again.');
     } finally {
       setVerifying(false);
@@ -171,14 +164,22 @@ export function WorldIDVerifier({ onVerificationSuccess }: WorldIDVerifierProps)
 
         <div className="space-y-4">
           <button
-            onClick={handleVerify}
-            disabled={verifying}
+            onClick={() => handleVerify(VerificationLevel.Orb)}
+            disabled={verifying || !isInstalled}
             className="w-full bg-blue-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
           >
-            {verifying ? 'Verifying...' : 'Verify with World ID'}
+            {verifying ? 'Verifying...' : 'Verify with World ID (Orb)'}
           </button>
           
-          {typeof window !== 'undefined' && !window.MiniKit && (
+          <button
+            onClick={() => handleVerify(VerificationLevel.Device)}
+            disabled={verifying || !isInstalled}
+            className="w-full bg-green-600 text-white py-3 px-6 rounded-lg font-medium hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors mt-2"
+          >
+            {verifying ? 'Verifying...' : 'Verify with World ID (Device)'}
+          </button>
+          
+          {!isInstalled && (
             <div className="mt-2 space-y-2">
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-xs text-yellow-800 mb-2">

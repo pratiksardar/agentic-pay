@@ -1,0 +1,29 @@
+{
+  "name": "humanpay",
+  "version": "1.0.0",
+  "description": "HumanPay - Verified Human API Marketplace",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend",
+    "contracts"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev --workspace=backend\" \"npm run dev --workspace=frontend\"",
+    "build": "npm run build --workspace=frontend && npm run build --workspace=contracts",
+    "test": "npm run test --workspace=contracts"
+  },
+  "keywords": [
+    "humanpay",
+    "world-id",
+    "x402",
+    "micropayments",
+    "api-marketplace"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "eruda": "^3.4.3"
+  }
+}

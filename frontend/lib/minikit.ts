@@ -108,99 +108,40 @@ export function isMiniKitAvailable(): boolean {
   return true;
 }
 
-export async function verifyWithWorldID(signal: string, action: string, appId: string, minikitInstance?: any): Promise<any> {
-  if (typeof window === 'undefined') {
-    throw new Error('MiniKit is only available in browser/World App environment');
-  }
-
-  // Use provided instance or try to get it
-  let minikit = minikitInstance;
-  if (!minikit) {
-    minikit = getMiniKit();
-  }
+/**
+ * Verify with World ID using MiniKit
+ * This follows the official pattern from World App documentation
+ */
+export async function verifyWithWorldID(
+  action: string,
+  verificationLevel: 'Orb' | 'Device' = 'Orb',
+  signal?: string
+): Promise<any> {
+  // Import MiniKit dynamically to avoid SSR issues
+  const { MiniKit } = await import('@worldcoin/minikit-js');
   
-  if (!minikit) {
+  if (!MiniKit || !MiniKit.commandsAsync) {
     throw new Error('MiniKit is not available. Please open this app in World App.');
   }
 
-  console.log('🔐 Attempting World ID verification with:', { signal, action, appId });
-  console.log('📦 MiniKit object:', minikit);
-  console.log('📦 MiniKit type:', typeof minikit);
+  console.log('🔐 Attempting World ID verification with:', { action, verificationLevel, signal });
   
-  // World App MiniKit API - according to docs, use commandsAsync.verify()
-  // Pattern 1: commandsAsync.verify (official API)
-  if (minikit.commandsAsync && typeof minikit.commandsAsync.verify === 'function') {
-    try {
-      console.log('🔄 Trying MiniKit.commandsAsync.verify()...');
-      const verifyPayload = {
-        action: action, // Action ID from Developer Portal
-        signal: signal, // Optional signal
-        verification_level: 'Orb', // 'Orb' or 'Device'
-      };
-      
-      const result = await minikit.commandsAsync.verify(verifyPayload);
-      console.log('✅ Verification result:', result);
-      
-      // The result should have finalPayload with status
-      if (result.finalPayload && result.finalPayload.status === 'success') {
-        return {
-          success: true,
-          proof: result.finalPayload.proof,
-          nullifier: result.finalPayload.nullifier_hash,
-          merkle_root: result.finalPayload.merkle_root,
-        };
-      } else {
-        throw new Error(result.finalPayload?.error || 'Verification failed');
-      }
-    } catch (error: any) {
-      console.error('❌ MiniKit.commandsAsync.verify() error:', error);
-      throw error;
-    }
+  try {
+    // Use the official MiniKit.commandsAsync.verify() method
+    const result = await MiniKit.commandsAsync.verify({
+      action, // Action ID from Developer Portal
+      verification_level: verificationLevel,
+      ...(signal && { signal }), // Optional signal
+    });
+    
+    console.log('✅ MiniKit verification result:', result);
+    console.log('📦 finalPayload:', result.finalPayload);
+    
+    // Return the full result with finalPayload (matches reference implementation)
+    return result;
+  } catch (error: any) {
+    console.error('❌ MiniKit.commandsAsync.verify() error:', error);
+    throw error;
   }
-
-  // Pattern 2: Direct verify method (alternative API)
-  if (typeof minikit.verify === 'function') {
-    try {
-      console.log('🔄 Trying minikit.verify()...');
-      const result = await minikit.verify({
-        signal,
-        action,
-        app_id: appId,
-      });
-      console.log('✅ Verification result:', result);
-      return result;
-    } catch (error: any) {
-      console.error('❌ MiniKit.verify() error:', error);
-      // Don't throw yet, try other methods
-    }
-  }
-
-  // Pattern 3: verifyProof method
-  if (typeof minikit.verifyProof === 'function') {
-    try {
-      console.log('🔄 Trying minikit.verifyProof()...');
-      const result = await minikit.verifyProof({
-        signal,
-        action,
-        app_id: appId,
-      });
-      console.log('✅ Verification result:', result);
-      return result;
-    } catch (error: any) {
-      console.error('❌ MiniKit.verifyProof() error:', error);
-    }
-  }
-
-  // Debug: Log available methods and structure
-  const availableMethods = typeof minikit === 'object' 
-    ? Object.keys(minikit).filter(k => typeof minikit[k] === 'function' || (typeof minikit[k] === 'object' && minikit[k] !== null))
-    : [];
-  console.error('❌ MiniKit verify method not found');
-  console.error('📋 Available properties:', availableMethods);
-  console.error('📋 Has commandsAsync:', !!minikit.commandsAsync);
-  console.error('📋 Has commands:', !!minikit.commands);
-  console.error('📋 Full MiniKit object:', minikit);
-  
-  throw new Error(`MiniKit verify method not found. Available: ${availableMethods.join(', ') || 'none'}. Expected: commandsAsync.verify() or verify().`);
 }
 
