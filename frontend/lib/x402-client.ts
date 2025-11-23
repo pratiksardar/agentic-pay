@@ -7,7 +7,7 @@ import { wrapFetchWithPayment, decodeXPaymentResponse } from 'x402-fetch';
 import { CdpClient } from '@coinbase/cdp-sdk';
 import { toAccount } from 'viem/accounts';
 
-let fetchWithPayment: ((input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) | null = null;
+let fetchWithPayment: typeof fetch | null = null;
 let account: any = null;
 
 /**
@@ -26,7 +26,6 @@ export async function initializeX402Client() {
     }
 
     // Initialize CDP client
-    // Type assertion for CDP client options (API may have changed)
     const cdp = new CdpClient({
       apiKeyName: apiKeyId,
       privateKey: apiKeySecret,
@@ -37,7 +36,7 @@ export async function initializeX402Client() {
     account = toAccount(cdpAccount);
 
     // Wrap fetch with X402 payment handling
-    fetchWithPayment = wrapFetchWithPayment(fetch, account) as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+    fetchWithPayment = wrapFetchWithPayment(fetch, account) as any;
 
     console.log('✅ X402 client initialized with CDP wallet');
     return fetchWithPayment;
@@ -52,11 +51,11 @@ export async function initializeX402Client() {
  * Get X402-enabled fetch function
  * If not initialized, returns regular fetch
  */
-export function getX402Fetch(): (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> {
+export function getX402Fetch(): typeof fetch {
   if (fetchWithPayment) {
     return fetchWithPayment;
   }
-  return fetch as (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+  return fetch;
 }
 
 /**

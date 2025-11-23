@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-// const authMiddleware = require('../middleware/auth'); // Temporarily disabled
-const authBypass = require('../middleware/auth-bypass'); // Using bypass for debugging
+const conditionalAuth = require('../middleware/conditional-auth'); // Switches based on ENABLE_AUTH_BYPASS flag
 const TransactionService = require('../services/TransactionService');
 
 // Get user transactions
-router.get('/', authBypass, async (req, res) => {
+router.get('/', conditionalAuth, async (req, res) => {
   try {
     const { nullifier } = req.user || { nullifier: 'debug-nullifier' };
     const limit = parseInt(req.query.limit) || 50;
@@ -28,7 +27,7 @@ router.get('/', authBypass, async (req, res) => {
 });
 
 // Get transaction statistics
-router.get('/stats', authBypass, async (req, res) => {
+router.get('/stats', conditionalAuth, async (req, res) => {
   try {
     const { nullifier } = req.user || { nullifier: 'debug-nullifier' };
 

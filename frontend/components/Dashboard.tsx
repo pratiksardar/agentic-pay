@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { PaymentUI } from './PaymentUI';
 import { AgentDashboard } from './AgentDashboard';
 import { TransactionHistory } from './TransactionHistory';
+import { getDebugNullifier, getAuthBypassHeaders, isAuthBypassMode } from '@/lib/auth-bypass-helper';
 
 // API Marketplace Window Component
 function APIMarketplaceWindow({ balance, setBalance }: { balance: number; setBalance: (b: number) => void }) {
@@ -14,14 +15,12 @@ function APIMarketplaceWindow({ balance, setBalance }: { balance: number; setBal
       try {
         const { getApiUrl } = await import('@/lib/api-config');
         const apiUrl = getApiUrl();
-        // Auth is currently bypassed, so no token needed
-        const headers: HeadersInit = {};
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+        // Get headers with auth bypass support
+        const headers = getAuthBypassHeaders();
         const response = await fetch(`${apiUrl}/api/marketplace`, {
           headers,
+          mode: 'cors',
+          credentials: 'omit',
         });
         if (response.ok) {
           const data = await response.json();
@@ -64,11 +63,14 @@ function AIAgentsWindow() {
   useEffect(() => {
     const fetchCount = async () => {
       try {
-        const token = localStorage.getItem('auth_token');
         const { getApiUrl } = await import('@/lib/api-config');
         const apiUrl = getApiUrl();
+        // Get headers with auth bypass support
+        const headers = getAuthBypassHeaders();
         const response = await fetch(`${apiUrl}/api/agents`, {
-          headers: { 'Authorization': `Bearer ${token}` },
+          headers,
+          mode: 'cors',
+          credentials: 'omit',
         });
         if (response.ok) {
           const data = await response.json();
@@ -110,18 +112,14 @@ export function Dashboard() {
       try {
         const { getApiUrl } = await import('@/lib/api-config');
         const apiUrl = getApiUrl();
-        const nullifierHash = localStorage.getItem('nullifier');
-        if (nullifierHash) {
-          setNullifier(nullifierHash);
-        }
-        
-        // Auth is currently bypassed, so no token needed
-        const headers: HeadersInit = {};
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
-        
+
+        // Get nullifier (debug mode if not authenticated)
+        const nullifierHash = getDebugNullifier();
+        setNullifier(nullifierHash);
+
+        // Get headers with auth bypass support
+        const headers = getAuthBypassHeaders();
+
         console.log('🔗 Fetching balance from:', `${apiUrl}/api/wallet/balance`);
         const response = await fetch(`${apiUrl}/api/wallet/balance`, {
           headers,

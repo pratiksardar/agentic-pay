@@ -1,12 +1,11 @@
 const express = require('express');
 const router = express.Router();
-// const authMiddleware = require('../middleware/auth'); // Temporarily disabled
-const authBypass = require('../middleware/auth-bypass'); // Using bypass for debugging
+const conditionalAuth = require('../middleware/conditional-auth'); // Switches based on ENABLE_AUTH_BYPASS flag
 const MicroPaymentEngine = require('../services/MicroPaymentEngine');
 const X402Handler = require('../services/X402Handler');
 
 // Get wallet balance
-router.get('/balance', authBypass, async (req, res) => {
+router.get('/balance', conditionalAuth, async (req, res) => {
   try {
     const { nullifier } = req.user;
 
@@ -31,7 +30,7 @@ router.get('/balance', authBypass, async (req, res) => {
 });
 
 // Top up wallet (for testing)
-router.post('/top-up', authBypass, async (req, res) => {
+router.post('/top-up', conditionalAuth, async (req, res) => {
   try {
     const { nullifier } = req.user;
     const { amount } = req.body;
@@ -63,7 +62,7 @@ router.post('/top-up', authBypass, async (req, res) => {
 });
 
 // Get wallet info
-router.get('/info', authBypass, async (req, res) => {
+router.get('/info', conditionalAuth, async (req, res) => {
   try {
     const { nullifier } = req.user;
 

@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
-// const authMiddleware = require('../middleware/auth'); // Temporarily disabled
-const authBypass = require('../middleware/auth-bypass'); // Using bypass for debugging
+const conditionalAuth = require('../middleware/conditional-auth'); // Switches based on ENABLE_AUTH_BYPASS flag
 const X402Handler = require('../services/X402Handler');
 
 // Call API with X402 payment (Phase 1 Implementation)
-router.post('/', authBypass, async (req, res) => {
+router.post('/', conditionalAuth, async (req, res) => {
   try {
     const { endpoint } = req.body;
     const { nullifier } = req.user || { nullifier: 'debug-nullifier' };

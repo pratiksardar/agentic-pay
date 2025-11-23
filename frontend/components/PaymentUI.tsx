@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { WalletTopUp } from './WalletTopUp';
 import { Notification } from './Notification';
 import { APIDetailView } from './APIDetailView';
+import { getAuthBypassHeaders } from '@/lib/auth-bypass-helper';
 
 interface API {
   id: string;
@@ -44,12 +45,8 @@ export function PaymentUI({ balance, setBalance, compact = false }: PaymentUIPro
       console.log('📱 User Agent:', navigator.userAgent);
       console.log('🌐 Current Origin:', window.location.origin);
       
-      // Auth is currently bypassed, so no token needed
-      const headers: HeadersInit = {};
-      const token = localStorage.getItem('auth_token');
-      if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-      }
+      // Get headers with auth bypass support
+      const headers = getAuthBypassHeaders();
       
       console.log('📤 Making fetch request...');
       const response = await fetch(fullUrl, {

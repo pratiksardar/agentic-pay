@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
-// const authMiddleware = require('../middleware/auth'); // Temporarily disabled
-const authBypass = require('../middleware/auth-bypass'); // Using bypass for debugging
+const conditionalAuth = require('../middleware/conditional-auth'); // Switches based on ENABLE_AUTH_BYPASS flag
 
 // Get user's agents
-router.get('/', authBypass, async (req, res) => {
+router.get('/', conditionalAuth, async (req, res) => {
   try {
     // Mock agents - replace with database query
     const agents = [];
@@ -16,7 +15,7 @@ router.get('/', authBypass, async (req, res) => {
 });
 
 // Deploy new agent
-router.post('/deploy', authBypass, async (req, res) => {
+router.post('/deploy', conditionalAuth, async (req, res) => {
   try {
     const { name, description, budget } = req.body;
     const { nullifier } = req.user;

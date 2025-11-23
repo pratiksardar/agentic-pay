@@ -112,27 +112,25 @@ export function isMiniKitAvailable(): boolean {
  * Verify with World ID using MiniKit
  * This follows the official pattern from World App documentation
  */
-import { VerificationLevel } from '@worldcoin/minikit-js';
-
 export async function verifyWithWorldID(
   action: string,
-  verificationLevel: VerificationLevel = VerificationLevel.Orb,
+  verificationLevel: 'Orb' | 'Device' = 'Orb',
   signal?: string
 ): Promise<any> {
   // Import MiniKit dynamically to avoid SSR issues
   const { MiniKit } = await import('@worldcoin/minikit-js');
-  
+
   if (!MiniKit || !MiniKit.commandsAsync) {
     throw new Error('MiniKit is not available. Please open this app in World App.');
   }
 
   console.log('🔐 Attempting World ID verification with:', { action, verificationLevel, signal });
-  
+
   try {
     // Use the official MiniKit.commandsAsync.verify() method
     const result = await MiniKit.commandsAsync.verify({
       action, // Action ID from Developer Portal
-      verification_level: verificationLevel,
+      verification_level: verificationLevel as any,
       ...(signal && { signal }), // Optional signal
     });
     

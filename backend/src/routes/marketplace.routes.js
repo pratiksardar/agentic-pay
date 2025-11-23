@@ -1,10 +1,9 @@
 const express = require('express');
 const router = express.Router();
-// const authMiddleware = require('../middleware/auth'); // Temporarily disabled
-const authBypass = require('../middleware/auth-bypass'); // Using bypass for debugging
+const conditionalAuth = require('../middleware/conditional-auth'); // Switches based on ENABLE_AUTH_BYPASS flag
 
 // Get all available APIs
-router.get('/', authBypass, async (req, res) => {
+router.get('/', conditionalAuth, async (req, res) => {
   try {
     // API listings - Real APIs from free-apis.github.io
     const apis = [

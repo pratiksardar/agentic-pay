@@ -92,7 +92,6 @@ export function WorldIDVerifier({ onVerificationSuccess }: WorldIDVerifierProps)
 
       console.log('✅ MiniKit verification result:', result);
       console.log('📦 finalPayload:', result.finalPayload);
-      // Type assertion for payload structure (may vary based on success/error)
       const payload = result.finalPayload as any;
       console.log('📦 Payload structure:', {
         hasProof: !!payload.proof,

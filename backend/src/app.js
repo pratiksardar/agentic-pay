@@ -24,11 +24,14 @@ app.use(cors({
       'http://localhost:3000',
       // Explicit zrok URLs (add your specific URLs here for extra safety)
       'https://nisr9fn986u1.share.zrok.io', // Frontend zrok URL (where users access the app)
-      'https://xzw4rbm1ffrh.share.zrok.io', // Backend zrok URL (also allow for direct access)
+      'https://hqh7qhvkk6zv.share.zrok.io', // Backend zrok URL (also allow for direct access)
       // Allow zrok/ngrok tunnels (regex patterns for any subdomain)
       /^https?:\/\/.*\.share\.zrok\.io$/,
       /^https?:\/\/.*\.ngrok\.io$/,
       /^https?:\/\/.*\.ngrok-free\.app$/,
+      // Allow Vercel deployments (production, preview, and branch deployments)
+      /^https?:\/\/.*\.vercel\.app$/,
+      /^https?:\/\/.*\.vercel\.dev$/,
     ];
     
     // Check if origin matches any allowed pattern

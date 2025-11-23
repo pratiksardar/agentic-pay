@@ -111,9 +111,8 @@ export async function POST(req: NextRequest) {
       });
     } else {
       // Verification failed - check if user is already verified in our backend system
-      // Type assertion for error handling (IVerifyResponse may have different error properties)
       const verifyResAny = verifyRes as any;
-      const errorMessage = verifyResAny.error || verifyResAny.detail || verifyResAny.message || 'Verification failed';
+      const errorMessage = verifyResAny.error || verifyResAny.detail || 'Verification failed';
       const errorCode = verifyResAny.code || 'unknown_error';
       
       // If World ID says user already verified, automatically allow them access
